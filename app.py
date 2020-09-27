@@ -39,9 +39,9 @@ def getNOAAdata():
     url = 'https://www.ncei.noaa.gov/access/services/data/v1'
 
     urlData = callNOAAapi(url, params, creds)
-    dataHead = urlData.head(10)
+    # dataHead = urlData.head(10)
     result = {
-        'rawData': dataHead.to_json(),
+        'rawData': urlData.to_json(),
         'totalDataLength': len(urlData),
         # 'startDate': monthAgo,
         # 'endDate': today
@@ -87,6 +87,9 @@ def getUSDAFireData():
     data = json.loads(request.data)
     start_year = data['startYear']
     end_year = data['endYear']
+    county = data['county']
+    county = county.lower()
+    print('county', county)
 
     if start_year == end_year:
         sqlQuery =  f"STATE_NAME = 'CA - CALIFORNIA' and DISCOVER_YEAR = {start_year}" 
@@ -105,9 +108,10 @@ def getUSDAFireData():
     r = requests.get(url, params)
     data = r.text
     data = json.loads(data)
+    
+    # print(data)
 
-    # for i in range(len(data['features'])):
-    #     print(data['features'][i]['attributes'])
+    # countyData = data[data['COUNTY_NAME'].str.lower() == county]
 
     result = {
         'data': data
