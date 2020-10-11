@@ -19,6 +19,11 @@ def callNOAAapi(url, params, header):
     r = requests.get(url, params, headers=header).text
     rawData = pd.read_csv(io.StringIO(r))
     return rawData
+
+def get_v2_data(url, header):
+    r = requests.get(url, headers=header).text
+    weather_dict = json.loads(r)
+    print(json.dumps(weather_dict, indent = 4, sort_keys=True))
     
 
 @app.route('/api/getNOAAdata', methods=['POST'])
@@ -85,38 +90,62 @@ def getEarthExplorerData():
 @app.route('/api/getUSDAFireData', methods=['POST'])
 def getUSDAFireData():
     data = json.loads(request.data)
-    start_year = data['startYear']
-    end_year = data['endYear']
+    start_date = data['startDate']
+    end_date = data['endDate']
     county = data['county']
     county = county.lower()
-    print('county', county)
 
-    if start_year == end_year:
-        sqlQuery =  f"STATE_NAME = 'CA - CALIFORNIA' and DISCOVER_YEAR = {start_year}" 
-    elif start_year > end_year:
-        sqlQuery = "STATE_NAME = 'CA - CALIFORNIA' and DISCOVER_YEAR = 0" 
-    elif start_year < end_year:
-        sqlQuery = f"STATE_NAME = 'CA - CALIFORNIA' and DISCOVER_YEAR between {start_year} and {end_year}"
-    
     url = "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_FireOccurrenceFIRESTAT_YRLY_01/MapServer/0/query"
-    outFields = "OBJECTID, DISCOVER_YEAR, STATE_NAME, COUNTY_NAME, FIRE_SIZE_CLASS, POO_LATITUDE, POO_LONGITUDE"
+    sqlQuery = f"CREATED_DATE > DATE '{start_date} 00:00:00' and CREATED_DATE < DATE '{end_date} 23:59:59' and COUNTY>0"
+    outFields = "OBJECTID, STATE_NAME, COUNTY_NAME, DISCOVER_YEAR, FIRE_SIZE_CLASS, CREATED_DATE,FIRE_NUMBER,TOTAL_ACRES_BURNED,TOPO_LANDFORM_ORIGIN,PRESCRIBED_FIRE,SLOPE, ELEVATION, OTHER_FUEL_MODEL,WIND_SPEED,FIRE_NAME,DISTRICT,POO_LATITUDE, POO_LONGITUDE,STATION_NAME"
+
     params = {"outSR": "4326",
               "where": sqlQuery,
               "outFields": outFields,
               "f":"json"}
-
     r = requests.get(url, params)
-    data = r.text
-    data = json.loads(data)
-    
-    # print(data)
-
-    # countyData = data[data['COUNTY_NAME'].str.lower() == county]
+    text = r.text
+    data = json.loads(text)
 
     result = {
         'data': data
     }
     return result
+
+# def getUSDAFireData():
+#     data = json.loads(request.data)
+#     start_year = data['startYear']
+#     end_year = data['endYear']
+#     county = data['county']
+#     county = county.lower()
+#     print('county', county)
+
+#     if start_year == end_year:
+#         sqlQuery =  f"STATE_NAME = 'CA - CALIFORNIA' and DISCOVER_YEAR = {start_year}" 
+#     elif start_year > end_year:
+#         sqlQuery = "STATE_NAME = 'CA - CALIFORNIA' and DISCOVER_YEAR = 0" 
+#     elif start_year < end_year:
+#         sqlQuery = f"STATE_NAME = 'CA - CALIFORNIA' and DISCOVER_YEAR between {start_year} and {end_year}"
+    
+#     url = "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_FireOccurrenceFIRESTAT_YRLY_01/MapServer/0/query"
+#     outFields = "OBJECTID, DISCOVER_YEAR, STATE_NAME, COUNTY_NAME, FIRE_SIZE_CLASS, POO_LATITUDE, POO_LONGITUDE"
+#     params = {"outSR": "4326",
+#               "where": sqlQuery,
+#               "outFields": outFields,
+#               "f":"json"}
+
+#     r = requests.get(url, params)
+#     data = r.text
+#     data = json.loads(data)
+    
+#     # print(data)
+
+#     # countyData = data[data['COUNTY_NAME'].str.lower() == county]
+
+#     result = {
+#         'data': data
+#     }
+#     return result
 
 @app.route('/api/getFirestatData')
 def getFirestatData():
