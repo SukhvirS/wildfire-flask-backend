@@ -23,7 +23,7 @@ def callNOAAapi(url, params, header):
 def get_v2_data(url, header):
     r = requests.get(url, headers=header).text
     weather_dict = json.loads(r)
-    print(json.dumps(weather_dict, indent = 4, sort_keys=True))
+    return json.dumps(weather_dict, indent = 4, sort_keys=True)
     
 
 @app.route('/api/getNOAAdata', methods=['POST'])
@@ -32,24 +32,38 @@ def getNOAAdata():
 
     startDate = data['startDate']
     endDate = data['endDate']
+    county = data['county']
+    county_fips = county_fips_codes[county]
+
 
     token = getNOAAToken()
-    
     creds = dict(token=token)
+
+    weatherStationUrl = 'https://www.ncdc.noaa.gov/cdo-web/api/v2/stations?locationid=FIPS:'+str(county_fips)+'&limit=50'
+    weatherStations = get_v2_data(weatherStationUrl, creds)
+    weatherStationsDict = json.loads(weatherStations)
+    
+    stations = []
+    for station in weatherStationsDict['results']:
+        stationInfo = station['id'].split(':')
+        stations.append(stationInfo[1])
+
     params = {'dataset': 'daily-summaries', \
-            'stations': 'USR0000CALP',\
+            'stations': stations,\
             'startDate': startDate, 'endDate': endDate,  \
             'dataTypes': ['AWND', 'PRCP', 'SNOW', 'TAVG', 'WT01', 'TMAX', 'TMIN'], \
             'units': 'standard'}
+
     url = 'https://www.ncei.noaa.gov/access/services/data/v1'
 
     urlData = callNOAAapi(url, params, creds)
+    # print(urlData)
+
     # dataHead = urlData.head(10)
     result = {
         'rawData': urlData.to_json(),
-        'totalDataLength': len(urlData),
-        # 'startDate': monthAgo,
-        # 'endDate': today
+        'weatherStationData': weatherStations,
+        
     }
     return result
 
@@ -112,40 +126,6 @@ def getUSDAFireData():
     }
     return result
 
-# def getUSDAFireData():
-#     data = json.loads(request.data)
-#     start_year = data['startYear']
-#     end_year = data['endYear']
-#     county = data['county']
-#     county = county.lower()
-#     print('county', county)
-
-#     if start_year == end_year:
-#         sqlQuery =  f"STATE_NAME = 'CA - CALIFORNIA' and DISCOVER_YEAR = {start_year}" 
-#     elif start_year > end_year:
-#         sqlQuery = "STATE_NAME = 'CA - CALIFORNIA' and DISCOVER_YEAR = 0" 
-#     elif start_year < end_year:
-#         sqlQuery = f"STATE_NAME = 'CA - CALIFORNIA' and DISCOVER_YEAR between {start_year} and {end_year}"
-    
-#     url = "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_FireOccurrenceFIRESTAT_YRLY_01/MapServer/0/query"
-#     outFields = "OBJECTID, DISCOVER_YEAR, STATE_NAME, COUNTY_NAME, FIRE_SIZE_CLASS, POO_LATITUDE, POO_LONGITUDE"
-#     params = {"outSR": "4326",
-#               "where": sqlQuery,
-#               "outFields": outFields,
-#               "f":"json"}
-
-#     r = requests.get(url, params)
-#     data = r.text
-#     data = json.loads(data)
-    
-#     # print(data)
-
-#     # countyData = data[data['COUNTY_NAME'].str.lower() == county]
-
-#     result = {
-#         'data': data
-#     }
-#     return result
 
 @app.route('/api/getFirestatData')
 def getFirestatData():
@@ -162,6 +142,71 @@ def getGoogleEarthEngineData():
 @app.route('/api/getModisData', methods=['POST'])
 def getModisData():
     pass
+
+
+
+
+
+county_fips_codes = {
+    'Almeda': '06001',
+    'Alpine': '06003',
+    'Amador': '06005',
+    'Butte': '06007',
+    'Calvares': '06009',
+    'Colusa': '06011',
+    'Contra Costa': '06013',
+    'Del Norte': '06015',
+    'El Dorado': '06017',
+    'Fresno': '06019',
+    'Glenn': '06021',
+    'Humboldt': '06023',
+    'Imperial': '06025',
+    'Inyo': '06027',
+    'Kern': '06029',
+    'Kings': '06031',
+    'Lake': '06033',
+    'Lassen': '06035',
+    'Los Angeles': '06037',
+    'Madera': '06039',
+    'Marin': '06041',
+    'Mariposa': '06043',
+    'Mendocino': '06045',
+    'Merced': '06047',
+    'Modoc': '06049',
+    'Mono': '06051',
+    'Monterey': '06053',
+    'Napa': '06055',
+    'Nevada': '06057',
+    'Orange': '06059',
+    'Placer': '06061',
+    'Plumas': '06063',
+    'Riverside': '06065',
+    'Sacramento': '06067',
+    'San Benito': '06069',
+    'San Bernardino': '06071',
+    'San Diego': '06073',
+    'San Francisco': '06075',
+    'San Joaquin': '06077',
+    'San Luis Obispo': '06079',
+    'San Mateo': '06081',
+    'Santa Barbara': '06083',
+    'Santa Clara': '06085',
+    'Santa Cruz': '06087',
+    'Shasta': '06089',
+    'Sierra': '06091',
+    'Siskiyou': '06093',
+    'Solano': '06095',
+    'Sonoma': '06097',
+    'Stanislaus': '06099',
+    'Sutter': '06101',
+    'Tehama': '06103',
+    'Trinity': '06105',
+    'Tulare': '06107',
+    'Tuolumne': '06109',
+    'Ventura': '06111',
+    'Yolo': '06113',
+    'Yuba': '06115',
+}
 
 
 
